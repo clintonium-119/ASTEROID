@@ -325,6 +325,71 @@ void pebble() {
     }
   }
 }
+void Alien() {
+  if (invasion > 0) {
+    invasion = invasion - 1;
+    if (UFO.x < 12000 && UFO.x > 800 && UFO.y > 400 && UFO.y < 6000 && invasion < 1)
+      invasion = 1;
+    UFO.x = UFO.x + UFO.vx;
+    UFO.y = UFO.y + UFO.vy;
+    if (UFO.x > 13000) UFO.x = UFO.x - 13800;
+    if (UFO.x < -500) UFO.x = UFO.x + 13800;
+    if (UFO.y > 6900) UFO.y = UFO.y - 7400;
+    if (UFO.y < -500) UFO.y = UFO.y + 7400;
+    if (UFOB.var > 0) {
+      UFOB.x = UFOB.x + UFOB.vx;
+      UFOB.y = UFOB.y + UFOB.vy;
+      UFOB.var = UFOB.var - 4;
+    }
+    if (arduboy.everyXFrames(30)) {
+      UFO.vx = random (-50, 50);
+      UFO.vy = random (-50, 50);
+      UFO.var = random(0, 24);
+    }
+    if (arduboy.everyXFrames(105)) {
+      UFOB.x = UFO.x;
+      UFOB.y = UFO.y;
+      UFOB.vx = (int8_t)(pgm_read_byte(&heading[UFO.var][0])) * 20;
+      UFOB.vy = (int8_t)(pgm_read_byte(&heading[UFO.var][1])) * 20;
+      UFOB.var = 100;
+    }
+    if (UFOB.var <= 0) {
+      UFOB.x = UFOB.y = UFOB.vx = UFOB.vy = UFOB.var = 0;
+    } else {
+      arduboy.drawPixel(UFOB.x / 100, UFOB.y / 100, WHITE);
+      UFOB.var = UFOB.var - 4;
+    }
+
+    for (uint8_t c = 0; c < bulletCount; c++) {
+      if ((abs(bullet[c].x - UFO.x) <= 500 && abs(bullet[c].y - UFO.y) <= 500) ||
+          (abs(bullet[c].x - UFO.x) + abs(bullet[c].y - UFO.y) < 700)) {
+        for (uint8_t e = c; e < bulletCount - 1; e++) {
+          bullet[e] = bullet[e + 1];
+        }
+        bulletCount = bulletCount - 1;
+
+        sound.tone(150, 75);
+        score = score + 5;
+
+        UFOB.x = UFOB.y = UFOB.vx = UFOB.vy = UFOB.var = 0;
+        UFO.x = UFO.y = UFO.vx = UFO.vy = UFO.var = 0;
+        invasion = 0;
+      }
+    }
+    if (UFO.x > 0) arduboy.drawBitmap(UFO.x / 100 - 4, UFO.y / 100 - 4, UFOSprite, 8, 8, WHITE);
+  } else {
+    invasion = 0;
+    if (arduboy.everyXFrames(30)) {
+      if (tick == 120 && (random(0, 10) == 8)) {
+        invasion = 240;
+        UFO.x = 9600 + random(0, 7400);
+        UFO.y = 4800 + random(0, 4200);
+        UFO.vx = random (-50, 50);
+        UFO.vy = random (-50, 50);
+      }
+    }
+  }
+}
 void radar() {
   if (tick >= 0) {
     for (uint8_t a = 0; a < asteroidCount; a ++) {
@@ -392,6 +457,28 @@ void radar() {
         pebbleCount = pebbleCount - 1;
       }
     }
+    // UFO Bullet collision
+    if ((abs(UFOB.x - shipX0) < 400 && abs(UFOB.y - shipY0) < 400) ||
+        (abs(UFOB.x - shipX1) < 400 && abs(UFOB.y - shipY1) < 400) ||
+        (abs(UFOB.x - shipX2) < 400 && abs(UFOB.y - shipY2) < 400)) {
+      delay(200);
+      collision();
+      UFOB.x = UFOB.y = UFOB.vx = UFOB.vy = UFOB.var = 0;
+     }
+
+    // UFO collision
+    if ((abs(UFO.x - shipX0) < 500 && abs(UFO.y - shipY0) < 500) ||
+        (abs(UFO.x - shipX0) + abs(UFO.y - shipY0) < 700) ||
+        (abs(UFO.x - shipX1) < 500 && abs(UFO.y - shipY1) < 500) ||
+        (abs(UFO.x - shipX1) + abs(UFO.y - shipY1) < 700) ||
+        (abs(UFO.x - shipX2) < 500 && abs(UFO.y - shipY2) < 500) ||
+        (abs(UFO.x - shipX2) + abs(UFO.y - shipY2) < 700)) {
+      delay(200);
+      collision();
+      UFOB.x = UFOB.y = UFOB.vx = UFOB.vy = UFOB.var = 0;
+      UFO.x = UFO.y = UFO.vx = UFO.vy = UFO.var = 0;
+      invasion = -1;
+    }
   } else {
     tick = tick + 1;
     if (tick >= 0) tick = 120;
@@ -445,7 +532,6 @@ void enterInitials() {
   initials[2] = ' ';
   while (index < 3) {
     if (arduboy.nextFrame()) {
-      arduboy.clear();
       arduboy.setCursor(16, 0);
       arduboy.print(F("HIGH SCORE"));
       arduboy.setCursor(88, 0);
@@ -498,64 +584,11 @@ void enterInitials() {
         }
       }
       arduboy.pollButtons();
-      arduboy.display();
+      arduboy.display(CLEAR_BUFFER);
     }
   }
 }
-void Alien() {
-  if (invasion > 0) {
-    invasion = invasion - 1;
-    if (UFO.x < 12000 && UFO.x > 800 && UFO.y > 400 && UFO.y < 6000 && invasion < 1)
-      invasion = 1;
-    UFO.x = UFO.x + UFO.vx;
-    UFO.y = UFO.y + UFO.vy;
-    if (UFO.x > 13000) UFO.x = UFO.x - 13800;
-    if (UFO.x < -500) UFO.x = UFO.x + 13800;
-    if (UFO.y > 6900) UFO.y = UFO.y - 7400;
-    if (UFO.y < -500) UFO.y = UFO.y + 7400;
-    if (UFOB.var > 0) {
-      UFOB.x = UFOB.x + UFOB.vx;
-      UFOB.y = UFOB.y + UFOB.vy;
-      UFOB.var = UFOB.var - 4;
-    }
-    if (arduboy.everyXFrames(30)) {
-      UFO.vx = random (-50, 50);
-      UFO.vy = random (-50, 50);
-      UFO.var = random(0, 24);
-    }
-    if (arduboy.everyXFrames(105)) {
-      UFOB.x = UFO.x;
-      UFOB.y = UFO.y;
-      UFOB.vx = (int8_t)(pgm_read_byte(&heading[UFO.var][0])) * 20;
-      UFOB.vy = (int8_t)(pgm_read_byte(&heading[UFO.var][1])) * 20;
-      UFOB.var = 100;
-    }
-    if (UFOB.var <= 0) {
-      UFOB.x = UFOB.y = UFOB.vx = UFOB.vy = UFOB.var = 0;
-    } else {
-      arduboy.drawPixel(UFOB.x / 100, UFOB.y / 100, WHITE);
-      UFOB.var = UFOB.var - 4;
-      /*if ((abs(UFOV[0] - ship.x) < 700 && abs(UFOV[1] - ship.y) < 700) ||
-          (abs(UFOV[0] - ship.x) + abs(UFOV[1] - ship.y) < 1000)) {
-        sound.tone(150, 50);
-        collision();
-        UFOB.x = UFOB.y = UFOB.vx = UFOB.vy = UFOB.var = 0;
-        }*/
-    }
-    arduboy.drawBitmap(UFO.x / 100 - 4, UFO.y / 100 - 4, UFOSprite, 8, 8, WHITE);
-  } else {
-    invasion = 0;
-    if (arduboy.everyXFrames(30)) {
-      if (tick == 120 && (random(0, 10) == 8)) {
-        invasion = 240;
-        UFO.x = 9600 + random(0, 7400);
-        UFO.y = 4800 + random(0, 4200);
-        UFO.vx = random (-50, 50);
-        UFO.vy = random (-50, 50);
-      }
-    }
-  }
-}
+
 uint16_t rawADC(uint8_t adc_bits) {
   uint16_t value;
   power_adc_enable(); // ADC on
@@ -576,10 +609,10 @@ void setup() {
   arduboy.begin();
   arduboy.initRandomSeed();
   arduboy.setFrameRate(30);
-  arduboy.clear();
   resetSim();
   if (arduboy.audio.enabled()) arduboy.audio.on();
   else arduboy.audio.off();
+  arduboy.display(CLEAR_BUFFER);
   Serial.begin(9600);
 }
 void loop() {
@@ -588,7 +621,6 @@ void loop() {
   else if (simState == ProgState::Main) arduboy.setFrameRate(20);
   else arduboy.setFrameRate(15);
   if (!arduboy.nextFrame()) return;
-  arduboy.clear();
   switch (simState) {
     case ProgState::Main: {
         //begin homescreen
@@ -743,9 +775,10 @@ void loop() {
       }
       if (arduboy.justPressed(A_BUTTON)) simState = ProgState::Main;
       if (arduboy.justPressed(LEFT_BUTTON)) simState = ProgState::DataErasure;
-      if (arduboy.everyXFrames(15)) battery = 1126400L/*1.1x1024x1000*/ / rawADC(ADC_VOLTAGE);
-      arduboy.setCursor(100, 50);
-      arduboy.print(battery);
+      // Comment out battery voltage printing
+      // if (arduboy.everyXFrames(15)) battery = 1126400L/*1.1x1024x1000*/ / rawADC(ADC_VOLTAGE);
+      // arduboy.setCursor(100, 50);
+      // arduboy.print(battery);
       break;
     case ProgState::Pause:
       arduboy.setCursor(32, 30);
@@ -771,22 +804,21 @@ void loop() {
       arduboy.print(F("START = RIGHT + B"));
       if (arduboy.pressed(RIGHT_BUTTON | B_BUTTON)) {
         for (int i = 0; i < 35; i ++) {
-          arduboy.clear();
           arduboy.setCursor(36, HEIGHT / 2);
           arduboy.print(F("WORKING..."));
-          arduboy.display();
+          arduboy.display(CLEAR_BUFFER);
           EEPROM.update(i + 100, 0xff);
         }
         delay(500);
         arduboy.setCursor(32, HEIGHT / 2);
-        arduboy.clear();
         arduboy.print(F("EREASE DONE"));
-        arduboy.display();
+        arduboy.display(CLEAR_BUFFER);
         delay(1000);
         simState = ProgState::Main;
       }
       if (arduboy.justPressed(A_BUTTON)) simState = ProgState::Main;
       break;
+      arduboy.display(CLEAR_BUFFER);
 
 
 
@@ -796,49 +828,49 @@ void loop() {
 
   //spash screen
   /*//*/
-  arduboy.setTextSize(1);
-  arduboy.setCursor(2, 8);
-  arduboy.print(score);
-  arduboy.setCursor(32, 8);
-  arduboy.print(level);
-  arduboy.setCursor(120, 8);
-  arduboy.print(life);
+//  arduboy.setTextSize(1);
+//  arduboy.setCursor(2, 8);
+//  arduboy.print(score);
+//  arduboy.setCursor(32, 8);
+//  arduboy.print(level);
+//  arduboy.setCursor(120, 8);
+//  arduboy.print(life);
   /*//*/
-    arduboy.setCursor(44, 8);
-    arduboy.print(ship.var);
-    arduboy.setCursor(60, 8);
-    arduboy.print(asteroidCount);
-    arduboy.setCursor(78, 8);
-    arduboy.print(rockCount);
-    arduboy.setCursor(96, 8);
-    arduboy.print(pebbleCount);
-    arduboy.setCursor(110, 8);
-    arduboy.print(bulletCount);
+//    arduboy.setCursor(44, 8);
+//    arduboy.print(ship.var);
+//    arduboy.setCursor(60, 8);
+//    arduboy.print(asteroidCount);
+//    arduboy.setCursor(78, 8);
+//    arduboy.print(rockCount);
+//    arduboy.setCursor(96, 8);
+//    arduboy.print(pebbleCount);
+//    arduboy.setCursor(110, 8);
+//    arduboy.print(bulletCount);
     /*//*/
-  arduboy.setCursor(100, 24);
-  arduboy.print(ship.x);
-  arduboy.setCursor(100, 34);
-  arduboy.print(ship.y);
-  arduboy.setCursor(100, 44);
-  arduboy.print(ship.vx);
-  arduboy.setCursor(100, 54);
-  arduboy.print(ship.vy);
+//  arduboy.setCursor(100, 24);
+//  arduboy.print(ship.x);
+//  arduboy.setCursor(100, 34);
+//  arduboy.print(ship.y);
+//  arduboy.setCursor(100, 44);
+//  arduboy.print(ship.vx);
+//  arduboy.setCursor(100, 54);
+//  arduboy.print(ship.vy);
   /*//*/
-  arduboy.setCursor(0, 24);
-  arduboy.print(UFO.x);
-  arduboy.setCursor(0, 34);
-  arduboy.print(UFO.y);
-  arduboy.setCursor(0, 44);
-  arduboy.print(UFO.vx);
-  arduboy.setCursor(0, 54);
-  arduboy.print(UFO.vy);
+//  arduboy.setCursor(0, 24);
+//  arduboy.print(UFO.x);
+//  arduboy.setCursor(0, 34);
+//  arduboy.print(UFO.y);
+//  arduboy.setCursor(0, 44);
+//  arduboy.print(UFO.vx);
+//  arduboy.setCursor(0, 54);
+//  arduboy.print(UFO.vy);
 
-  arduboy.setCursor(30, 55);
-  arduboy.print(arduboy.cpuLoad());
-  arduboy.setCursor(54, 55);
-  arduboy.print(tick);
-  arduboy.setCursor(80, 55);
-  arduboy.print(invasion);
+//  arduboy.setCursor(30, 55);
+//  arduboy.print(arduboy.cpuLoad());
+//  arduboy.setCursor(54, 55);
+//  arduboy.print(tick);
+//  arduboy.setCursor(80, 55);
+//  arduboy.print(invasion);
 
   /*//*/
 
@@ -852,7 +884,7 @@ void loop() {
     arduboy.drawPixel(WIDTH - 1, HEIGHT - 4, 1);
   }
   Serial.write(arduboy.getBuffer(), 128 * 64 / 8);
-  arduboy.display();
+  arduboy.display(CLEAR_BUFFER);
 
   //end display
 
