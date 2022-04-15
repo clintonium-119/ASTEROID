@@ -27,7 +27,6 @@ signed char life;
 signed char level = 0;
 unsigned short score;
 signed short tick;
-//bool turnC;
 enum class ProgState : uint8_t {Main, Simulation,  DataEntry, DataDisplay, Pause, DataErasure};
 char initials[3];
 unsigned short battery;
@@ -91,8 +90,6 @@ void guidance() {
   if (ship.vy < 0)ship.vy = ship.vy + 1;
   if (ship.vy > 0)ship.vx = ship.vx - 1;
   if (ship.vx < 0)ship.vx = ship.vx + 1;
-  //if (abs(ship.vx) < 5) ship.vx = 0;
-  //if (abs(ship.vy) < 5) ship.vy = 0;
   if (ship.vy > 300)ship.vy = 300;
   if (ship.vy < -300)ship.vy = -300;
   if (ship.vx > 300)ship.vx = 300;
@@ -509,8 +506,6 @@ void collision() {
   ship.vy = 0;
 }
 void resetSim() {
-  //ship.y = 5000;
-  //shipX = 6400;
   UFO.x = 6400;
   UFO.y = 5000;
   resetField();
@@ -588,22 +583,6 @@ void enterInitials() {
     }
   }
 }
-
-uint16_t rawADC(uint8_t adc_bits) {
-  uint16_t value;
-  power_adc_enable(); // ADC on
-  ADMUX = adc_bits;
-  // we also need MUX5 for temperature check
-  if (adc_bits == ADC_TEMP) {
-    ADCSRB = _BV(MUX5);
-  }
-  delay(2); // Wait for ADMUX setting to settle
-  ADCSRA |= _BV(ADSC); // Start conversion
-  while (bit_is_set(ADCSRA, ADSC)); // measuring
-  value = ADC;
-  power_adc_disable();
-  return value;
-}
 void setup() {
   // put your setup code here, to run once:
   arduboy.begin();
@@ -638,27 +617,7 @@ void loop() {
           UFO.vy = random (-50, 50);
         }
         arduboy.drawBitmap(UFO.x / 100 - 4, UFO.y / 100 - 4, UFOSprite, 8, 8, WHITE);
-        /*if (arduboy.everyXFrames(10)) {
-          turnC = random(0, 2) == 1;
-          }
-          if (arduboy.everyXFrames(3)) {
-          if (turnC) ship.var = ship.var + 1;
-          else ship.var = ship.var - 1;
-          }
-          if (ship.var > 23) ship.var = ship.var - 24;
-          if (ship.var < 0) ship.var = ship.var + 24;
-          ship.vx = 100;
-          ship();
-          if (arduboy.everyXFrames(5) && (bulletCount < 8)) {
-          bullet[bulletCount][1] = (int8_t)(pgm_read_byte(&heading[ship.var][0])) * 20;
-          bullet[bulletCount][3] = (int8_t)(pgm_read_byte(&heading[ship.var][1])) * 20;
-          bullet[bulletCount][0] = shipX + (int8_t)(pgm_read_byte(&shipTbl[2][ship.var]));
-          bullet[bulletCount][2] = ship.y + (int8_t)(pgm_read_byte(&shipTbl[3][ship.var]));
-          bullet[bulletCount][4] = 100;
-          bulletCount = bulletCount + 1;
-          }
-          trajectory();
-        */
+
         if (arduboy.justPressed(B_BUTTON)) {
           life = 3;
           ship.x = 6400;
@@ -775,10 +734,6 @@ void loop() {
       }
       if (arduboy.justPressed(A_BUTTON)) simState = ProgState::Main;
       if (arduboy.justPressed(LEFT_BUTTON)) simState = ProgState::DataErasure;
-      // Comment out battery voltage printing
-      // if (arduboy.everyXFrames(15)) battery = 1126400L/*1.1x1024x1000*/ / rawADC(ADC_VOLTAGE);
-      // arduboy.setCursor(100, 50);
-      // arduboy.print(battery);
       break;
     case ProgState::Pause:
       arduboy.setCursor(32, 30);
@@ -791,10 +746,6 @@ void loop() {
         else arduboy.audio.on();
         arduboy.audio.saveOnOff();
       }
-      if (arduboy.everyXFrames(20)) battery = 1126400L/*1.1x1024x1000*/ / rawADC(ADC_VOLTAGE);
-      arduboy.setCursor(100, 50);
-      arduboy.setTextSize(1);
-      arduboy.print(battery);
       break;
     case ProgState::DataErasure:
       arduboy.setCursor(14, 32);
@@ -818,65 +769,7 @@ void loop() {
       }
       if (arduboy.justPressed(A_BUTTON)) simState = ProgState::Main;
       break;
-      arduboy.display(CLEAR_BUFFER);
-
-
-
   }
-
-  //begin printObj
-
-  //spash screen
-  /*//*/
-//  arduboy.setTextSize(1);
-//  arduboy.setCursor(2, 8);
-//  arduboy.print(score);
-//  arduboy.setCursor(32, 8);
-//  arduboy.print(level);
-//  arduboy.setCursor(120, 8);
-//  arduboy.print(life);
-  /*//*/
-//    arduboy.setCursor(44, 8);
-//    arduboy.print(ship.var);
-//    arduboy.setCursor(60, 8);
-//    arduboy.print(asteroidCount);
-//    arduboy.setCursor(78, 8);
-//    arduboy.print(rockCount);
-//    arduboy.setCursor(96, 8);
-//    arduboy.print(pebbleCount);
-//    arduboy.setCursor(110, 8);
-//    arduboy.print(bulletCount);
-    /*//*/
-//  arduboy.setCursor(100, 24);
-//  arduboy.print(ship.x);
-//  arduboy.setCursor(100, 34);
-//  arduboy.print(ship.y);
-//  arduboy.setCursor(100, 44);
-//  arduboy.print(ship.vx);
-//  arduboy.setCursor(100, 54);
-//  arduboy.print(ship.vy);
-  /*//*/
-//  arduboy.setCursor(0, 24);
-//  arduboy.print(UFO.x);
-//  arduboy.setCursor(0, 34);
-//  arduboy.print(UFO.y);
-//  arduboy.setCursor(0, 44);
-//  arduboy.print(UFO.vx);
-//  arduboy.setCursor(0, 54);
-//  arduboy.print(UFO.vy);
-
-//  arduboy.setCursor(30, 55);
-//  arduboy.print(arduboy.cpuLoad());
-//  arduboy.setCursor(54, 55);
-//  arduboy.print(tick);
-//  arduboy.setCursor(80, 55);
-//  arduboy.print(invasion);
-
-  /*//*/
-
-  /**///splash screen
-  //end printObj
-
   //begin display
   if (arduboy.audio.enabled()) {
     arduboy.drawRect(WIDTH - 3, HEIGHT - 2, 2, 2, 1);
@@ -885,7 +778,6 @@ void loop() {
   }
   Serial.write(arduboy.getBuffer(), 128 * 64 / 8);
   arduboy.display(CLEAR_BUFFER);
-
   //end display
 
   //begin pollButtons
